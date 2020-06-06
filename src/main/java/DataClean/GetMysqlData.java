@@ -44,7 +44,7 @@ public  class GetMysqlData {
         List<ArticleBean> list = new ArrayList<>();
         try{
             String sql;
-            sql = "SELECT id,title, content,tags FROM article";
+            sql = "SELECT id,title, content,tags FROM article_copy1";
             ResultSet rs = stmt.executeQuery(sql);
 
             // 展开结果集数据库
@@ -102,7 +102,7 @@ public  class GetMysqlData {
     {
         try {
 
-                         String sql = "Update article set tags=?,clean_content=?,keyword=?,summary = ? where id=?";
+                         String sql = "Update article_copy1 set tags=?,clean_content=?,keyword=?,summary = ? where id=?";
                          // 预处理sql语句
                          PreparedStatement presta = conn.prepareStatement(sql);
                          // 设置sql语句中的values值

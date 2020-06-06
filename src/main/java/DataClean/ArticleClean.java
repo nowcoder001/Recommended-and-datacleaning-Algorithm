@@ -6,6 +6,7 @@ import com.google.common.base.Preconditions;
 
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 
 import static java.lang.Integer.min;
@@ -108,27 +109,28 @@ public static List<String> getTag(List<Tag> tagList,ArticleBean articleBean)
                 {
                         for(Tag tag :tagList)
                         {
-                            String default_tag = Word2PinYin(tag.getName());
-                            String desc [] = tag.getDescription().split(" ");
-                            String now_tag = Word2PinYin(temp_tag[i]);
-                            if(StringHasChinese(tag.getName()) || StringHasChinese(temp_tag[i]))
-                            {
-                                if(editDistance(default_tag,now_tag) <3)
-                                {
 
-                                    resultTag.add(tag.getName());
-                                    continue;
-                                }
-                            }
-                            else
-                            {
-                                if(editDistance(default_tag,now_tag) ==0)
+                                String default_tag = Word2PinYin(tag.getName());
+                                String desc [] = tag.getDescription().split(" ");
+                                String now_tag = Word2PinYin(temp_tag[i]);
+                                if(StringHasChinese(tag.getName()) || StringHasChinese(temp_tag[i]))
                                 {
+                                    if(editDistance(default_tag,now_tag) <3)
+                                    {
 
-                                    resultTag.add(tag.getName());
-                                    continue;
+                                        resultTag.add(tag.getName());
+                                        continue;
+                                    }
                                 }
-                            }
+                                else
+                                {
+                                    if(editDistance(default_tag,now_tag) ==0)
+                                    {
+
+                                        resultTag.add(tag.getName());
+                                        continue;
+                                    }
+                                }
 
 
                                 for(int k = 0 ; k<desc.length ; k++)
@@ -153,52 +155,56 @@ public static List<String> getTag(List<Tag> tagList,ArticleBean articleBean)
                                 }
 
 
+
+
+
                         }
                 }
             }
 
                 for(Tag tag :tagList)
                 {
-                    String default_tag = Word2PinYin(tag.getName());
-                    String desc [] = tag.getDescription().split(" ");
-                    if(clean_content.toLowerCase().contains(default_tag.toLowerCase()))
-                    {
-                        resultTag.add(tag.getName());
-                        continue;
-                    }
-                    else if(title.toLowerCase().contains(default_tag.toLowerCase()))
-                    {
-                        resultTag.add(default_tag);
-                        continue;
-                    }else
-                    {
-                        for(int k = 0 ; k<desc.length ; k++)
+
+                        String default_tag = Word2PinYin(tag.getName());
+                        String desc [] = tag.getDescription().split(" ");
+                        if(clean_content.toLowerCase().contains(default_tag.toLowerCase()))
                         {
-                           if(clean_content.toLowerCase().contains(desc[k].toLowerCase()) && !desc[k].equals(""))
-                           {
-                               System.out.println(clean_content.toLowerCase());
-                               System.out.println(desc[k].toLowerCase());
-                               resultTag.add(tag.getName());
-                               continue;
-                           }
+                            resultTag.add(tag.getName());
+                            continue;
                         }
-                    }
+                        else if(title.toLowerCase().contains(default_tag.toLowerCase()))
+                        {
+                            resultTag.add(tag.getName());
+                            continue;
+                        }else
+                        {
+                            for(int k = 0 ; k<desc.length ; k++)
+                            {
+                                if(clean_content.toLowerCase().contains(desc[k].toLowerCase()) && !desc[k].equals(""))
+                                {
+
+                                    resultTag.add(tag.getName());
+                                    continue;
+                                }
+                            }
+                        }
+
+
 
                 }
 
     }
-    return resultTag;
+    return  new ArrayList<String>(new HashSet<String>(resultTag));
 
 }
-//求编辑距离
+
+//求编辑距离 利用动态规划
 public static int editDistance(String str1, String str2) {
         Preconditions.checkNotNull(str1);
         Preconditions.checkNotNull(str2);
 
         int len1 = str1.length();
         int len2 = str2.length();
-
-        // len1+1, len2+1, because finally return dp[len1][len2]
         int[][] dp = new int[len1 + 1][len2 + 1];
 
         for (int i = 0; i <= len1; i++) {
@@ -218,7 +224,7 @@ public static int editDistance(String str1, String str2) {
                     //update dp value for +1 length
                     dp[i + 1][j + 1] = dp[i][j];
                 } else {
-                    dp[i + 1][j + 1] = 1 + min(dp[i+1][j], min(dp[i][j+1], dp[i][j])); // 这里不需要递归实现了
+                    dp[i + 1][j + 1] = 1 + min(dp[i+1][j], min(dp[i][j+1], dp[i][j]));
                 }
             }
         }
@@ -297,8 +303,18 @@ public static int editDistance(String str1, String str2) {
             {
                 str += s+",";
             }
-            System.out.println(id+"   " +tags);
-            getMysqlData.UpdateArticle(id,str,clean_content,keyword,summary);
+            if (str.length() != 0)
+            {
+                System.out.println(id+"   " +tags);
+                System.out.println(str.substring(0,str.length()-1));
+            getMysqlData.UpdateArticle(id,str.substring(0,str.length()-1),clean_content,keyword,summary);
+            }else
+            {
+                System.out.println(id+"   " +tags);
+                System.out.println(str);
+                getMysqlData.UpdateArticle(id,str,clean_content,keyword,summary);
+            }
+
 
         }
     }
