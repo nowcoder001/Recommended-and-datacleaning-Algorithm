@@ -10,6 +10,9 @@ import org.apache.commons.lang.StringUtils;
 import java.util.Arrays;
 import java.util.List;
 
+/**
+ * 一个工具类 可以将汉字转化为拼音 比较编辑距离
+ */
 public class PinYinUtil {
     private static HanyuPinyinOutputFormat format = new HanyuPinyinOutputFormat();
 

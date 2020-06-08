@@ -5,9 +5,8 @@ import Abstract.TextRankSummary;
 import com.google.common.base.Preconditions;
 
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
+import java.util.*;
+import java.util.regex.Pattern;
 
 import static java.lang.Integer.min;
 
@@ -90,34 +89,47 @@ public class ArticleClean {
     }
 
 
-public static List<String> getTag(List<Tag> tagList,ArticleBean articleBean)
+    /**
+     * 获取博客的标签 ——有的博客本身有标签 但是需要统一成系统有的标签   有的博客没有标签，就需要构造标签
+     * @param tagList   系统定义好的标签
+     * @param articleBean  文章的信息
+     * @return
+     */
+    public static List<String> getTag(List<Tag> tagList,ArticleBean articleBean)
 {
-    String tags = articleBean.getTags();
-    String clean_content = articleBean.getClean_content();
-    String title = articleBean.getTitle();
-    String keywords[] = articleBean.getKeyword().split(",");
-    //当内容不为空时才能提取tag
-    List<String> resultTag = new ArrayList<>();
-    if(!clean_content.equals(""))
+    String tags = articleBean.getTags();//如果文章本身有标签 存在这里
+    String clean_content = articleBean.getClean_content();//清洗后的文章内容
+    String title = articleBean.getTitle();//文章的标题
+    Map<String,Integer> map = new HashMap<>();
+    List<String> resultTag = new ArrayList<>();//存储提取标签的结果
+
+    if(!clean_content.equals("")) //当内容不为空时才能提取tag
+
     {
         //当这篇博客本身就有tag时
             if(!tags.equals(""))
             {
                 String temp_tag [] = tags.split(",");
-                //对比已有标签和 此标签的相似度
+                //对比已有标签和系统定义标签的相似度标签的相似度
+                /**
+                 * 对比编辑距离  对比前需要将汉字全部转化为拼音 方便比对编辑距离
+                 *
+                 */
                 for(int i = 0 ; i < temp_tag.length ; i++)
                 {
                         for(Tag tag :tagList)
                         {
 
                                 String default_tag = Word2PinYin(tag.getName());
-                                String desc [] = tag.getDescription().split(" ");
+                                String desc [] = tag.getDescription().split("#");
                                 String now_tag = Word2PinYin(temp_tag[i]);
+
                                 if(StringHasChinese(tag.getName()) || StringHasChinese(temp_tag[i]))
                                 {
                                     if(editDistance(default_tag,now_tag) <3)
                                     {
-
+                                        if(!map.containsKey(tag.getName())) map.put(tag.getName(),0);
+                                        map.put(tag.getName(),map.get(tag.getName()) +1);
                                         resultTag.add(tag.getName());
                                         continue;
                                     }
@@ -127,6 +139,8 @@ public static List<String> getTag(List<Tag> tagList,ArticleBean articleBean)
                                     if(editDistance(default_tag,now_tag) ==0)
                                     {
 
+                                        if(!map.containsKey(tag.getName())) map.put(tag.getName(),0);
+                                        map.put(tag.getName(),map.get(tag.getName()) +1);
                                         resultTag.add(tag.getName());
                                         continue;
                                     }
@@ -139,6 +153,8 @@ public static List<String> getTag(List<Tag> tagList,ArticleBean articleBean)
                                     {
                                         if(editDistance(Word2PinYin(desc[k]),now_tag) <3)
                                         {
+                                            if(!map.containsKey(tag.getName())) map.put(tag.getName(),0);
+                                            map.put(tag.getName(),map.get(tag.getName()) +1);
                                             resultTag.add(tag.getName());
                                             continue;
                                         }
@@ -147,59 +163,124 @@ public static List<String> getTag(List<Tag> tagList,ArticleBean articleBean)
 
                                         if(editDistance(Word2PinYin(desc[k]),now_tag) ==0)
                                         {
+                                            if(!map.containsKey(tag.getName())) map.put(tag.getName(),0);
+                                            map.put(tag.getName(),map.get(tag.getName()) +1);
                                             resultTag.add(tag.getName());
                                             continue;
                                         }
                                     }
 
                                 }
-
-
-
-
-
-                        }
-                }
+               }}
             }
+            /**
+                 * 如果没有自带标签 或者自带标签与系统中的标签无法匹配上时，需要我们根据博客的标题和文字内容进行 字串对比 看能不能匹配到对应的标签
+                 */
 
                 for(Tag tag :tagList)
                 {
 
-                        String default_tag = Word2PinYin(tag.getName());
-                        String desc [] = tag.getDescription().split(" ");
-                        if(clean_content.toLowerCase().contains(default_tag.toLowerCase()))
+                    String default_tag = Word2PinYin(tag.getName());
+                    String desc [] = tag.getDescription().split("#");
+                    if(clean_content.toLowerCase().contains(default_tag.toLowerCase()))
+                    {
+                        if(!map.containsKey(tag.getName())) map.put(tag.getName(),0);
+                        map.put(tag.getName(),map.get(tag.getName()) +1);
+                        resultTag.add(tag.getName());
+                        continue;
+                    }
+                    else if(title.toLowerCase().contains(default_tag.toLowerCase()))
+                    {
+                        if(!map.containsKey(tag.getName())) map.put(tag.getName(),0);
+                        map.put(tag.getName(),map.get(tag.getName()) +1);
+                        resultTag.add(tag.getName());
+                        continue;
+                    }else
+                    {
+                        for(int k = 0 ; k<desc.length ; k++)
                         {
-                            resultTag.add(tag.getName());
-                            continue;
-                        }
-                        else if(title.toLowerCase().contains(default_tag.toLowerCase()))
-                        {
-                            resultTag.add(tag.getName());
-                            continue;
-                        }else
-                        {
-                            for(int k = 0 ; k<desc.length ; k++)
+                            if(clean_content.toLowerCase().contains(desc[k].toLowerCase()) && !desc[k].equals(""))
                             {
-                                if(clean_content.toLowerCase().contains(desc[k].toLowerCase()) && !desc[k].equals(""))
-                                {
-
-                                    resultTag.add(tag.getName());
-                                    continue;
-                                }
+                                if(!map.containsKey(tag.getName())) map.put(tag.getName(),0);
+                                map.put(tag.getName(),map.get(tag.getName()) +1);
+                                resultTag.add(tag.getName());
+                                continue;
                             }
                         }
+                    }
 
 
 
                 }
-
     }
-    return  new ArrayList<String>(new HashSet<String>(resultTag));
+    List<Map.Entry<String, Integer>> list = new ArrayList<Map.Entry<String, Integer>>(map.entrySet());
+    Collections.sort(list, new Comparator<Map.Entry<String, Integer>>() {
+        public int compare(Map.Entry<String, Integer> o1, Map.Entry<String, Integer> o2) {
+            if(o2.getValue() > o1.getValue())
+                return 1;
+            else  if(o2.getValue() < o1.getValue())
+                return -1;
+            else return 0;
+//
+        }
+    });
+    int index = 0;
+    List<String> result = new ArrayList<>();
+    for(Map.Entry<String, Integer> t:list){
+        result.add(t.getKey());
+        if(++index >2) break;
+    }
+    return result;
+//    return  new ArrayList<String>(new HashSet<String>(resultTag));
 
 }
 
-//求编辑距离 利用动态规划
-public static int editDistance(String str1, String str2) {
+    /**
+     * 有了标签之后 根据博客的标签 匹配对应的博客分类
+     * @param classify_list
+     * @param tag_list
+     * @return
+     */
+    public static List<String> getClassify(List<Classify> classify_list ,List<String> tag_list)
+{
+    List<String> classify_result = new ArrayList<>();
+    for(String tag :tag_list)
+    {
+        String deal_tag = Word2PinYin(filtration(tag));
+        for(Classify classify :classify_list)
+        {
+            String classify_desc [] = classify.getDescription().split("#");
+            for(int i = 0 ; i< classify_desc.length ; i++)
+            {
+                    String deal_decs = Word2PinYin(filtration(classify_desc[i]));
+                    if(editDistance(deal_decs,deal_tag) == 0)
+                    {
+                        classify_result.add(classify.getName());
+                    }
+            }
+        }
+    }
+   return new ArrayList<String>(new HashSet<String>(classify_result));
+}
+
+    /**
+     * 正则表达式 去除特殊字符
+     * @param str
+     * @return
+     */
+    public static String filtration(String str) {
+        String regEx = "[`~!@#$%^&*()+=|{}:;\\\\[\\\\].<>/?~！@#￥%……&*（）——+|{}【】‘；：”“’。，、？']";
+        str = Pattern.compile(regEx).matcher(str).replaceAll("").trim();
+        return str;
+    }
+
+    /**
+     * 利用动态规划求编辑距离
+     * @param str1
+     * @param str2
+     * @return
+     */
+    public static int editDistance(String str1, String str2) {
         Preconditions.checkNotNull(str1);
         Preconditions.checkNotNull(str2);
 
@@ -231,7 +312,12 @@ public static int editDistance(String str1, String str2) {
 
         return  dp[len1][len2];
     }
-    //将有中文的字符串转成拼音
+
+    /**
+     * 将有中文的字符串转成拼音
+     * @param str
+     * @return
+     */
     public static String Word2PinYin(String str)
     {
         StringBuffer sb = new StringBuffer();
@@ -259,6 +345,12 @@ public static int editDistance(String str1, String str2) {
         }
         return sb.toString();
     }
+
+    /**
+     * 判断一个字符串中是否含有中文
+     * @param str
+     * @return
+     */
     public static boolean StringHasChinese(String str)
     {
         for(int i = 0 ; i< str.length() ; i++)
@@ -270,7 +362,12 @@ public static int editDistance(String str1, String str2) {
         }
         return false;
     }
-    //判断一个字符是否是中文
+
+    /**
+     * 判断一个字符是否是中文
+     * @param c
+     * @return
+     */
     public static boolean isChinese(char c) {
         Character.UnicodeScript sc = Character.UnicodeScript.of(c);
         if (sc == Character.UnicodeScript.HAN) {
@@ -283,36 +380,48 @@ public static int editDistance(String str1, String str2) {
     public static void main(String [] args)
     {
         GetMysqlData getMysqlData = new GetMysqlData();
-        List<ArticleBean>  articleBeans  =getMysqlData.getArticle();
-        List<Tag> tagList = getMysqlData.getTag();
+        List<ArticleBean>  articleBeans  =getMysqlData.getArticle();//从数据库中取出所有文章
+        List<Tag> tagList = getMysqlData.getTag();//从数据库取出所有tag信息
+        List<Classify> classifyList = getMysqlData.getClassify();//从数据库中取出所有分类信息
         for(ArticleBean articleBean:articleBeans) {
             int id = articleBean.getId();
             String title = articleBean.getTitle();
             String content = articleBean.getContent();
             String tags = articleBean.getTags();
-            GetCleanedContent GetCleanedContent = new GetCleanedContent(content);
+            GetCleanedContent GetCleanedContent = new GetCleanedContent(content); //将博客内容 带html标签的内容  使用jsoup提取对应标签中的内容
             String clean_content = GetCleanedContent.parse();
-            String keyword = new TextRankKeyword().getKeyword(title, clean_content);
-            String summary = TextRankSummary.getTopSentenceList(clean_content, 3);
+            String keyword = new TextRankKeyword().getKeyword(title, clean_content);//使用textrank算法提取关键词
+            String summary = TextRankSummary.getTopSentenceList(clean_content, 3);//使用textrank算法提取摘要
             articleBean.setKeyword(keyword);
             articleBean.setClean_content(clean_content);
             articleBean.setSummary(summary);
-            List<String > result_tag = getTag(tagList,articleBean);
-            String str = "";
+            List<String > result_tag = getTag(tagList,articleBean);//提取标签
+
+            List<String > result_classify =getClassify(classifyList,result_tag);//提取分类
+            String str_tag = "";
             for(String s :result_tag)
             {
-                str += s+",";
+                str_tag += s+",";
             }
-            if (str.length() != 0)
+            String str_classify  = "";
+            for(String s :result_classify)
+            {
+                str_classify += s+",";
+            }
+
+
+            if (str_tag.length() != 0)
             {
                 System.out.println(id+"   " +tags);
-                System.out.println(str.substring(0,str.length()-1));
-            getMysqlData.UpdateArticle(id,str.substring(0,str.length()-1),clean_content,keyword,summary);
+                System.out.println(str_tag.substring(0,str_tag.length()-1));
+                System.out.println(str_classify);
+                getMysqlData.UpdateArticle(id,str_tag.substring(0,str_tag.length()-1),str_classify,clean_content,keyword,summary);
             }else
             {
                 System.out.println(id+"   " +tags);
-                System.out.println(str);
-                getMysqlData.UpdateArticle(id,str,clean_content,keyword,summary);
+                System.out.println(str_tag);
+                System.out.println(str_classify);
+                getMysqlData.UpdateArticle(id,str_tag,str_classify,clean_content,keyword,summary);
             }
 
 

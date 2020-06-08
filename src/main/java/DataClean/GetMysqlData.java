@@ -98,19 +98,49 @@ public  class GetMysqlData {
         }
         return list;
     }
-    public void UpdateArticle(int id,String tags,String clean_content,String keyword,String summary)
+    public List<Classify> getClassify()
+    {
+        List<Classify> list = new ArrayList<>();
+        try{
+            String sql;
+            sql = "SELECT id,name,description FROM classify";
+            ResultSet rs = stmt.executeQuery(sql);
+
+            // 展开结果集数据库
+            while(rs.next()){
+                // 通过字段检索
+                int id  = rs.getInt("id");
+                String name = rs.getString("name");
+                String description = rs.getString("description");
+                Classify classify = new Classify(id,name,description);
+                list.add(classify);
+            }
+            // 完成后关闭
+            rs.close();
+
+        }catch(SQLException se){
+            // 处理 JDBC 错误
+            se.printStackTrace();
+        }catch(Exception e){
+            // 处理 Class.forName 错误
+            e.printStackTrace();
+        }
+        return list;
+    }
+    public void UpdateArticle(int id,String tags,String classifys,String clean_content,String keyword,String summary)
     {
         try {
 
-                         String sql = "Update article_copy1 set tags=?,clean_content=?,keyword=?,summary = ? where id=?";
+                         String sql = "Update article_copy1 set tags=?,classifys=?,clean_content=?,keyword=?,summary = ? where id=?";
                          // 预处理sql语句
                          PreparedStatement presta = conn.prepareStatement(sql);
                          // 设置sql语句中的values值
                          presta.setString(1, tags);
-                         presta.setString(2, clean_content);
-                         presta.setString(3, keyword);
-                        presta.setString(4, summary);
-            presta.setInt(5, id);
+                         presta.setString(2, classifys);
+                         presta.setString(3, clean_content);
+                        presta.setString(4, keyword);
+                 presta.setString(5, summary);
+                    presta.setInt(6, id);
                          // 执行SQL语句，实现数据添加
                          presta.execute();
                      } catch (SQLException e) {

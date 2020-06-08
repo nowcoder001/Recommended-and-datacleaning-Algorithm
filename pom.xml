@@ -46,11 +46,19 @@
             <artifactId>mahout</artifactId>
             <version>0.11.1</version>
         </dependency>
+        <!-- https://mvnrepository.com/artifact/org.apache.mahout/mahout-core -->
+        <dependency>
+            <groupId>org.apache.mahout</groupId>
+            <artifactId>mahout-core</artifactId>
+            <version>0.9</version>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/org.apache.mahout/mahout-examples -->
         <dependency>
             <groupId>org.apache.mahout</groupId>
             <artifactId>mahout-examples</artifactId>
             <version>0.13.0</version>
         </dependency>
+
         <dependency>
             <groupId>com.opencsv</groupId>
             <artifactId>opencsv</artifactId>
